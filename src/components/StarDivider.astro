@@ -1,0 +1,92 @@
+---
+const count = 48;
+const stars = Array.from({ length: count });
+---
+<div class="star-divider-wrapper">
+  <div class="star-divider" aria-hidden="true" role="presentation">
+    <div class="track">
+      <div class="segment">
+        {stars.map(() => <span class="star">★</span>)}
+      </div>
+      <div class="segment">
+        {stars.map(() => <span class="star">★</span>)}
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  :root {
+    --star-size: 1.6rem;
+    --star-gap: 1rem;
+    --star-speed: 18s;
+  }
+
+  .star-divider-wrapper {
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+    display: block;
+    margin: 2rem 0; /* add spacing above and below */
+    mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      black 10%,
+      black 90%,
+      transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      black 10%,
+      black 90%,
+      transparent 100%
+    );
+  }
+
+  .star-divider {
+    width: 100%;
+    height: calc(var(--star-size) + 0.6rem);
+    position: relative;
+    display: block;
+  }
+
+  .star-divider .track {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    animation: slide-left var(--star-speed) linear infinite;
+    will-change: transform;
+  }
+
+  .star-divider .segment {
+    display: flex;
+    gap: var(--star-gap);
+    white-space: nowrap;
+    flex: 0 0 100%;
+    align-items: center;
+  }
+
+  .star-divider .star {
+    font-size: var(--star-size);
+    color: rgba(255,255,255,0.95);
+    text-shadow: 0 2px 6px rgba(0,0,0,0.6); 
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    min-width: calc(var(--star-size) + var(--star-gap) * 0.1);
+    line-height: 1;
+    flex: 0 0 auto;
+  }
+
+  @keyframes slide-left {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+
+  @media (max-width: 720px) {
+    :root { --star-size: 1.1rem; --star-gap: 0.6rem; --star-speed: 12s; }
+    .star-divider { height: calc(var(--star-size) + 0.6rem); }
+  }
+</style>

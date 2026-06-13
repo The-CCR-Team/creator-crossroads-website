@@ -1,0 +1,127 @@
+---
+import BaseHead from "../components/BaseHead.astro";
+import Footer from "../components/Footer.astro";
+import Header from "../components/Header.astro";
+import LightboxGallery from "../components/LightboxGallery.astro";
+import { SITE_DESCRIPTION, SITE_TITLE } from "../consts";
+import Stars from "../components/StarDivider.astro";
+import Particles from "../components/Particles.astro";
+import { Image } from "astro:assets";
+import LogoAlt from "../assets/logo-alt.png";
+import Haniya from "../assets/mascots/haniya.png";
+import IconV1 from "../assets/gallery/icon-v1.png";
+import IconV2 from "../assets/gallery/icon-v2.png";
+import Banner from "../assets/gallery/banner.png";
+import IconAprilFools from "../assets/gallery/icon-april-fools.png";
+import IconPrideMonth from "../assets/gallery/icon-pride-month.png";
+import HaniyaEventArt from "../assets/gallery/haniya-event-art.png";
+import VyEventArt from "../assets/gallery/vy-event-art.png";
+import VyV2 from "../assets/gallery/vy-v2.png";
+import SignageEventArt from "../assets/gallery/signage-event-art.png";
+import BrigiEventArt from "../assets/gallery/brigi-event-art.png";
+import BrigiV2 from "../assets/gallery/brigi-v2.png";
+import PrismaEventArt from "../assets/gallery/prisma-event-art.png";
+import ArturoEventArt1 from "../assets/gallery/arturo-event-art-1.png";
+import ArturoEventArt2 from "../assets/gallery/arturo-event-art-2.png";
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title="About - Creator CrossRoads" description={SITE_DESCRIPTION} />
+	</head>
+	<body>
+		<Header />
+		<Particles />
+<main>
+
+	  <Stars />
+
+<article class="post-card">
+<div class="post-card-content">
+    <h3>About Us</h3>
+    	<p style="text-align: left;">
+        	We are a community founded as a Discord server on the 10th of November 2025 by <a href="https://azuulstar.newgrounds.com">AzuulStar</a> and <a href="https://bsky.app/profile/amythest7.bsky.social">Amythest7</a>, our mission from the start was to help as many people as we could.
+			<br>It started getting serious around January of 2026 where we launched the server's 1.0 update and in the next month we bought ourselves a domain and a website.
+        	<br>The name and logo were actually given to us by members in our "Server Identity Event" we hosted at the start of 2026, the name was given by Jadestone and the icon by <a href="https://x.com/asawubii">Asawubii</a>, and since then we continued to grow and grow.
+    	</p>
+	</div>
+
+    <div class="post-card-media">
+      	<Image src={LogoAlt} alt="Logo Alt" width="1000" loading="eager" />
+    </div>
+</article>
+
+    <Stars />
+
+	<article class="post-card">
+
+	<div class="post-card-media">
+      	<Image src={Haniya} alt="Haniya" width="400" loading="lazy" />
+    </div>
+
+<div class="post-card-content">
+    <h3>The Team</h3>
+    	<p style="text-align: left;">
+        	We are a small team of currently round 20~ people and growing, full of skilled artists, programmers, musicians, and more! We work hard to try bringing this project to life, and everyone is very chill so if you join our Discord server you'll find everyone just chatting and having fun!
+			<br>If you wanna be part of our team be on the look out for our social medias and Discord server announcements, who knows what we might need soon!
+        	<br>Full list of our team on our Discord server!
+    	</p>
+	</div>
+</article>
+
+    <Stars />
+
+<article class="post-card">
+  <div class="post-card-content">
+    <h3 style="text-align: center;">Gallery</h3>
+	<p style="text-align: left;">
+        Check out our gallery! Full of cool arts and designs we've made for the server, from icons to characters and more!
+  </div>
+
+<LightboxGallery
+  items={[
+    { image: IconV1, alt: "The first icon, by @asawubii" },
+    { image: IconV2, alt: "Icon V2, by @asawubii" },
+    { image: Banner, alt: "Banner (Background of Icon V1), by @asawubii" },
+    { image: IconAprilFools, alt: "April Fools icon, by @elithepidude" },
+    { image: IconPrideMonth, alt: "Pride Month icon (Edit of icon V2 by @asawubii)" },
+    { image: HaniyaEventArt, alt: "Haniya by @hypedfox" },
+    { image: VyEventArt, alt: "Vy by @lynxx_exists" },
+    { image: VyV2, alt: "Vy V2 render, by @lynxx_exists" },
+    { image: SignageEventArt, alt: "Signage by @lithiumalkalinumber3" },
+    { image: BrigiEventArt, alt: "Brigi by @nicepoptart" },
+    { image: BrigiV2, alt: "Brigi V2 render, by @nicepoptart" },
+    { image: PrismaEventArt, alt: "Prisma by @maryshine27" },
+    { image: ArturoEventArt1, alt: "Arturo (Human) by @alexiyt.com" },
+    { image: ArturoEventArt2, alt: "Arturo (Green) by @alexiyt.com" },
+  ]}
+  group="about-gallery"
+  clickText="Click to open the gallery!"
+/>
+
+</article>
+
+<Stars />
+
+</main>
+<Footer />
+	</body>
+</html>
+
+<style>
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.gallery img {
+  border-radius: 10px;
+  transition: transform 0.2s ease;
+}
+
+.gallery a:hover img {
+  transform: scale(1.03);
+}
+</style>

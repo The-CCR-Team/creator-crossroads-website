@@ -1,0 +1,541 @@
+---
+import { Image } from "astro:assets";
+
+const {
+  items = [],
+  group = "gallery",
+  clickText = "Click to open the gallery!",
+} = Astro.props;
+
+const typedItems = items as { image: any; alt: string }[];
+const preview = typedItems[0];
+
+if (!preview) {
+  throw new Error("LightboxGallery: items cannot be empty");
+}
+
+const galleryId = `gallery-${group}`;
+---
+
+<div class="gallery-feature">
+  <button
+    class="gallery-preview"
+    data-gallery-open={galleryId}
+    data-index="0"
+    aria-label="Open gallery"
+  >
+    <Image src={preview.image} alt={preview.alt} width="900" />
+    <div class="overlay">
+      <span>{clickText}</span>
+    </div>
+  </button>
+</div>
+
+<script define:vars={{ images: typedItems.map(i => ({ src: i.image.src, alt: i.alt })), galleryId }}>
+  const iconPath = (name) => `/src/assets/icons/${name}.png`;
+
+  // build lightbox on body to avoid stacking context issues from parent transforms
+  const lightbox = document.createElement("div");
+  lightbox.id = galleryId;
+  lightbox.setAttribute("role", "dialog");
+  lightbox.setAttribute("aria-modal", "true");
+  lightbox.setAttribute("aria-label", "Image gallery");
+  lightbox.className = "lb-backdrop";
+  lightbox.innerHTML = `
+    <button class="lb-close" aria-label="Close gallery">
+      <img class="lb-icon lb-icon-default" src="${iconPath('close-icon')}" alt="Close" />
+      <img class="lb-icon lb-icon-alt" src="${iconPath('close-alt-icon')}" alt="Close" />
+    </button>
+
+    <div class="lb-top-left">
+      <button class="lb-hide-ui" aria-label="Toggle UI">
+        <img class="lb-icon lb-icon-default" src="${iconPath('eye-open-icon')}" alt="Hide UI" />
+        <img class="lb-icon lb-icon-alt" src="${iconPath('eye-open-alt-icon')}" alt="Hide UI" />
+        <img class="lb-icon lb-icon-hidden" src="${iconPath('eye-closed-icon')}" alt="Show UI" style="display:none" />
+        <img class="lb-icon lb-icon-hidden-alt" src="${iconPath('eye-closed-alt-icon')}" alt="Show UI" style="display:none" />
+      </button>
+      <button class="lb-zoom-btn" aria-label="Zoom">
+        <img class="lb-icon lb-icon-default" src="${iconPath('magnifier-icon')}" alt="Zoom" />
+        <img class="lb-icon lb-icon-alt" src="${iconPath('magnifier-alt-icon')}" alt="Zoom" />
+        <img class="lb-icon lb-icon-zoom-in" src="${iconPath('magnifier-plus-icon')}" alt="Zoomed in" style="display:none" />
+        <img class="lb-icon lb-icon-zoom-in-alt" src="${iconPath('magnifier-plus-alt-icon')}" alt="Zoomed in" style="display:none" />
+        <img class="lb-icon lb-icon-zoom-out" src="${iconPath('magnifier-minus-icon')}" alt="Zoomed out" style="display:none" />
+        <img class="lb-icon lb-icon-zoom-out-alt" src="${iconPath('magnifier-minus-alt-icon')}" alt="Zoomed out" style="display:none" />
+      </button>
+      <div class="lb-zoom-slider-wrap" style="display:none">
+        <input class="lb-zoom-slider" type="range" min="50" max="200" value="100" step="5" aria-label="Zoom level" />
+        <span class="lb-zoom-label">100%</span>
+      </div>
+    </div>
+
+    <button class="lb-prev" aria-label="Previous image">
+      <img class="lb-icon lb-icon-default" src="${iconPath('arrow-left-icon')}" alt="Previous" />
+      <img class="lb-icon lb-icon-alt" src="${iconPath('arrow-left-alt-icon')}" alt="Previous" />
+    </button>
+    <button class="lb-next" aria-label="Next image">
+      <img class="lb-icon lb-icon-default" src="${iconPath('arrow-right-icon')}" alt="Next" />
+      <img class="lb-icon lb-icon-alt" src="${iconPath('arrow-right-alt-icon')}" alt="Next" />
+    </button>
+
+    <img class="lb-img" src="" alt="" />
+    <div class="lb-caption"></div>
+    <div class="lb-counter"></div>
+  `;
+  document.body.appendChild(lightbox);
+
+  const lightboxImg = lightbox.querySelector(".lb-img");
+  const caption = lightbox.querySelector(".lb-caption");
+  const counter = lightbox.querySelector(".lb-counter");
+  const closeBtn = lightbox.querySelector(".lb-close");
+  const prevBtn = lightbox.querySelector(".lb-prev");
+  const nextBtn = lightbox.querySelector(".lb-next");
+  const hideUiBtn = lightbox.querySelector(".lb-hide-ui");
+  const zoomBtn = lightbox.querySelector(".lb-zoom-btn");
+  const zoomWrap = lightbox.querySelector(".lb-zoom-slider-wrap");
+  const zoomSlider = lightbox.querySelector(".lb-zoom-slider");
+  const zoomLabel = lightbox.querySelector(".lb-zoom-label");
+
+  const eyeOpen = hideUiBtn.querySelector(".lb-icon-default");
+  const eyeOpenAlt = hideUiBtn.querySelector(".lb-icon-alt");
+  const eyeClosed = hideUiBtn.querySelector(".lb-icon-hidden");
+  const eyeClosedAlt = hideUiBtn.querySelector(".lb-icon-hidden-alt");
+
+  const magDefault = zoomBtn.querySelector(".lb-icon-default");
+  const magDefaultAlt = zoomBtn.querySelector(".lb-icon-alt");
+  const magPlus = zoomBtn.querySelector(".lb-icon-zoom-in");
+  const magPlusAlt = zoomBtn.querySelector(".lb-icon-zoom-in-alt");
+  const magMinus = zoomBtn.querySelector(".lb-icon-zoom-out");
+  const magMinusAlt = zoomBtn.querySelector(".lb-icon-zoom-out-alt");
+
+  const uiElements = [prevBtn, nextBtn, caption, counter, closeBtn];
+
+  let current = 0;
+  let isAnimating = false;
+  let uiVisible = true;
+  let zoomOpen = false;
+  let zoomLevel = 100;
+
+  function updateZoomIcon() {
+    const hovered = zoomBtn.matches(":hover");
+    [magDefault, magDefaultAlt, magPlus, magPlusAlt, magMinus, magMinusAlt]
+      .forEach(el => { el.style.display = "none"; });
+    if (zoomLevel === 100) {
+      (hovered ? magDefaultAlt : magDefault).style.display = "";
+    } else if (zoomLevel > 100) {
+      (hovered ? magPlusAlt : magPlus).style.display = "";
+    } else {
+      (hovered ? magMinusAlt : magMinus).style.display = "";
+    }
+  }
+
+  zoomBtn.addEventListener("mouseenter", updateZoomIcon);
+  zoomBtn.addEventListener("mouseleave", updateZoomIcon);
+
+  zoomBtn.addEventListener("click", () => {
+    zoomOpen = !zoomOpen;
+    zoomWrap.style.display = zoomOpen ? "flex" : "none";
+  });
+
+  zoomSlider.addEventListener("input", () => {
+    zoomLevel = Number(zoomSlider.value);
+    zoomLabel.textContent = `${zoomLevel}%`;
+    lightboxImg.style.transform = `scale(${zoomLevel / 100})`;
+    updateZoomIcon();
+  });
+
+  function updateHideUiIcon() {
+    const hovered = hideUiBtn.matches(":hover");
+    eyeOpen.style.display = uiVisible && !hovered ? "" : "none";
+    eyeOpenAlt.style.display = uiVisible && hovered ? "" : "none";
+    eyeClosed.style.display = !uiVisible && !hovered ? "" : "none";
+    eyeClosedAlt.style.display = !uiVisible && hovered ? "" : "none";
+  }
+
+  hideUiBtn.addEventListener("mouseenter", updateHideUiIcon);
+  hideUiBtn.addEventListener("mouseleave", updateHideUiIcon);
+
+  hideUiBtn.addEventListener("click", () => {
+    uiVisible = !uiVisible;
+    uiElements.forEach(el => {
+      el.style.transition = "opacity 0.3s ease";
+      el.style.opacity = uiVisible ? "1" : "0";
+      el.style.pointerEvents = uiVisible ? "" : "none";
+    });
+    updateHideUiIcon();
+  });
+
+  function resetZoom() {
+    zoomLevel = 100;
+    zoomSlider.value = "100";
+    zoomLabel.textContent = "100%";
+    lightboxImg.style.transform = "scale(1)";
+    updateZoomIcon();
+  }
+
+  function show(index, direction = 0) {
+    if (isAnimating) return;
+    const next = (index + images.length) % images.length;
+    if (next === current && direction !== 0) return;
+
+    resetZoom();
+
+    if (direction !== 0) {
+      isAnimating = true;
+      lightboxImg.classList.add(direction > 0 ? "lb-slide-out-left" : "lb-slide-out-right");
+      lightboxImg.addEventListener("animationend", () => {
+        lightboxImg.classList.remove("lb-slide-out-left", "lb-slide-out-right");
+        current = next;
+        lightboxImg.src = images[current].src;
+        lightboxImg.alt = images[current].alt;
+        caption.textContent = images[current].alt;
+        counter.textContent = `${current + 1} / ${images.length}`;
+        lightboxImg.classList.add(direction > 0 ? "lb-slide-in-right" : "lb-slide-in-left");
+        lightboxImg.addEventListener("animationend", () => {
+          lightboxImg.classList.remove("lb-slide-in-right", "lb-slide-in-left");
+          isAnimating = false;
+        }, { once: true });
+      }, { once: true });
+    } else {
+      current = next;
+      lightboxImg.src = images[current].src;
+      lightboxImg.alt = images[current].alt;
+      caption.textContent = images[current].alt;
+      counter.textContent = `${current + 1} / ${images.length}`;
+    }
+
+    prevBtn.style.display = images.length <= 1 ? "none" : "";
+    nextBtn.style.display = images.length <= 1 ? "none" : "";
+  }
+
+  function open(index = 0) {
+    show(index);
+    lightbox.classList.add("lb-open");
+    document.body.style.overflow = "hidden";
+    closeBtn.focus();
+  }
+
+  function close() {
+    uiVisible = true;
+    uiElements.forEach(el => { el.style.opacity = "1"; el.style.pointerEvents = ""; });
+    zoomOpen = false;
+    zoomWrap.style.display = "none";
+    resetZoom();
+    updateHideUiIcon();
+
+    lightbox.classList.add("lb-closing");
+    lightbox.addEventListener("animationend", () => {
+      lightbox.classList.remove("lb-open", "lb-closing");
+      document.body.style.overflow = "";
+    }, { once: true });
+  }
+
+  document.querySelectorAll(`[data-gallery-open="${galleryId}"]`).forEach(btn => {
+    btn.addEventListener("click", () => open(Number(btn.dataset.index ?? 0)));
+  });
+
+  closeBtn.addEventListener("click", close);
+  prevBtn.addEventListener("click", () => show(current - 1, -1));
+  nextBtn.addEventListener("click", () => show(current + 1, 1));
+
+  lightbox.addEventListener("click", (e) => {
+    if (e.target === lightbox) close();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (!lightbox.classList.contains("lb-open")) return;
+    if (e.key === "Escape") close();
+    if (e.key === "ArrowLeft") show(current - 1, -1);
+    if (e.key === "ArrowRight") show(current + 1, 1);
+  });
+</script>
+
+<style>
+  .gallery-feature {
+    position: relative;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+
+  .gallery-preview {
+    display: block;
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+    width: 100%;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+  }
+
+  .gallery-preview img {
+    width: 100%;
+    height: auto;
+    filter: brightness(0.6) blur(1px);
+    transform: scale(1.02);
+    transition: 0.25s ease;
+  }
+
+  .gallery-preview:hover img {
+    filter: brightness(0.85) blur(0px);
+    transform: scale(1);
+  }
+
+  .overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    font-family: inherit;
+  }
+
+  .overlay span {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: white;
+  }
+
+  .gallery-preview:hover .overlay {
+    background: rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+</style>
+
+<style is:global>
+  @keyframes lb-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes lb-fade-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+  }
+
+  @keyframes lb-slide-out-left {
+    from { opacity: 1; transform: translateX(0); }
+    to { opacity: 0; transform: translateX(-80px); }
+  }
+
+  @keyframes lb-slide-out-right {
+    from { opacity: 1; transform: translateX(0); }
+    to { opacity: 0; transform: translateX(80px); }
+  }
+
+  @keyframes lb-slide-in-left {
+    from { opacity: 0; transform: translateX(-80px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  @keyframes lb-slide-in-right {
+    from { opacity: 0; transform: translateX(80px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .lb-backdrop {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    z-index: 9999;
+  }
+
+  .lb-backdrop.lb-open {
+    display: flex;
+    animation: lb-fade-in 0.3s ease forwards;
+  }
+
+  .lb-backdrop.lb-closing {
+    animation: lb-fade-out 0.3s ease forwards;
+  }
+
+  .lb-img {
+    max-width: min(90vw, 1000px);
+    max-height: 80vh;
+    border-radius: 12px;
+    object-fit: contain;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+    transition: transform 0.2s ease;
+  }
+
+  .lb-img:hover {
+    transform: none !important;
+  }
+
+  .lb-slide-out-left { animation: lb-slide-out-left 0.25s ease forwards; }
+  .lb-slide-out-right { animation: lb-slide-out-right 0.25s ease forwards; }
+  .lb-slide-in-left { animation: lb-slide-in-left 0.25s ease forwards; }
+  .lb-slide-in-right { animation: lb-slide-in-right 0.25s ease forwards; }
+
+  .lb-close,
+  .lb-prev,
+  .lb-next,
+  .lb-hide-ui,
+  .lb-zoom-btn {
+    position: fixed;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease;
+  }
+
+  .lb-close { top: 1.25rem; right: 1.25rem; }
+  .lb-prev { left: 1.25rem; top: 50%; transform: translateY(-50%); }
+  .lb-next { right: 1.25rem; top: 50%; transform: translateY(-50%); }
+
+  .lb-close:hover { transform: scale(1.2); }
+  .lb-prev:hover { transform: translateY(-50%) scale(1.2); }
+  .lb-next:hover { transform: translateY(-50%) scale(1.2); }
+
+  .lb-top-left {
+    position: fixed;
+    top: 1.25rem;
+    left: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    z-index: 10000;
+  }
+
+  .lb-hide-ui,
+  .lb-zoom-btn {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .lb-hide-ui:hover,
+  .lb-zoom-btn:hover {
+    transform: scale(1.2);
+  }
+
+  .lb-zoom-slider-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(0, 3, 77, 0.25);
+    border: 1px solid var(--accent-dark);
+    border-radius: 16px;
+    padding: 0.3rem 0.8rem;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  }
+
+  .lb-zoom-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 120px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.3);
+    outline: none;
+    cursor: pointer;
+  }
+
+  .lb-zoom-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: white;
+    cursor: pointer;
+  }
+
+  .lb-zoom-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: white;
+    border: none;
+    cursor: pointer;
+  }
+
+  .lb-zoom-label {
+    color: white;
+    font-size: 0.8rem;
+    min-width: 2.5rem;
+    text-align: right;
+    -webkit-text-stroke: 0;
+  }
+
+  .lb-icon {
+    position: absolute;
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    transform: none !important;
+    transition: opacity 0.2s ease;
+  }
+
+  .lb-icon:hover {
+    transform: none !important;
+  }
+
+  /* close/prev/next use CSS for the hover swap; eye and magnifier are JS-controlled */
+  .lb-close .lb-icon-alt,
+  .lb-prev .lb-icon-alt,
+  .lb-next .lb-icon-alt { opacity: 0; }
+
+  .lb-close .lb-icon-default,
+  .lb-prev .lb-icon-default,
+  .lb-next .lb-icon-default { opacity: 1; }
+
+  .lb-close:hover .lb-icon-default,
+  .lb-prev:hover .lb-icon-default,
+  .lb-next:hover .lb-icon-default { opacity: 0; }
+
+  .lb-close:hover .lb-icon-alt,
+  .lb-prev:hover .lb-icon-alt,
+  .lb-next:hover .lb-icon-alt { opacity: 1; }
+
+  .lb-caption {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    font-size: 1.2rem;
+    text-align: center;
+    max-width: 80vw;
+    padding: 0.6rem 1.4rem;
+    background: rgba(0, 3, 77, 0.25);
+    border-radius: 16px;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--accent-dark);
+    white-space: nowrap;
+  }
+
+  .lb-counter {
+    position: fixed;
+    top: 1.25rem;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    font-size: 0.9rem;
+    padding: 0.25rem 0.75rem;
+    background: rgba(0, 3, 77, 0.25);
+    border-radius: 16px;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--accent-dark);
+  }
+</style>

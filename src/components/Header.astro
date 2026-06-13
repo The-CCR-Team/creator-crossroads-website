@@ -1,0 +1,475 @@
+---
+import { SITE_TITLE } from "../consts";
+import HeaderLink from "./HeaderLink.astro";
+import { Image } from "astro:assets";
+import Icon from "../assets/icon.jpeg";
+import MusicIcon from "../assets/icons/music-icon.png";
+import MusicIconAlt from "../assets/icons/music-alt-icon.png";
+
+const iconPath = (name: string) => `/src/assets/icons/${name}.png`;
+---
+
+<header>
+  <nav>
+    <div class="nav-left">
+      <div class="icon-image">
+        <Image src={Icon} alt="CCR Icon" loading="eager" />
+      </div>
+      <h3><a href="/">{SITE_TITLE}</a></h3>
+    </div>
+
+    <div class="nav-center internal-links">
+      <HeaderLink href="/">Home</HeaderLink>
+      <HeaderLink href="/about">About</HeaderLink>
+      <HeaderLink href="/blog">Blog</HeaderLink>
+      <HeaderLink href="/projects">Projects</HeaderLink>
+      <HeaderLink href="/partners">Partners</HeaderLink>
+    </div>
+
+    <div class="nav-right">
+      <button id="music-toggle" class="audio-button" type="button" aria-label="Open music player">
+        <img id="music-icon-default" class="music-btn-icon" src={MusicIcon.src} alt="Music" />
+        <img id="music-icon-alt" class="music-btn-icon" src={MusicIconAlt.src} alt="Music" style="display:none" />
+      </button>
+    </div>
+
+    <audio id="bg-music" src="/bg-music.mp3" preload="metadata"></audio>
+  </nav>
+</header>
+
+<script>
+  const iconPath = (name: string) => `/src/assets/icons/${name}.png`;
+
+  const audio = document.getElementById('bg-music') as HTMLAudioElement;
+  const toggle = document.getElementById('music-toggle') as HTMLButtonElement;
+  const headerIcon = document.getElementById('music-icon-default') as HTMLImageElement;
+  const headerIconAlt = document.getElementById('music-icon-alt') as HTMLImageElement;
+
+  // popup is on body so it doesn't get clipped by the header
+  const popup = document.createElement('div');
+  popup.id = 'music-popup';
+  popup.className = 'music-popup';
+  popup.style.display = 'none';
+  popup.innerHTML = `
+    <div class="music-song-name">CrossRoads</div>
+    <div class="music-artist">By @asawubii</div>
+    <div class="music-controls">
+      <button class="mc-btn" id="mc-prev" aria-label="Skip back 10s">
+        <img class="mc-icon mc-default" src="${iconPath('music-alone-previous-icon')}" alt="Previous" />
+        <img class="mc-icon mc-alt" src="${iconPath('music-alone-previous-alt-icon')}" alt="Previous" style="display:none" />
+      </button>
+      <button class="mc-btn" id="mc-play" aria-label="Play">
+        <img class="mc-icon mc-default" src="${iconPath('music-alone-play-icon')}" alt="Play" />
+        <img class="mc-icon mc-alt" src="${iconPath('music-alone-play-alt-icon')}" alt="Play" style="display:none" />
+        <img class="mc-icon mc-pause" src="${iconPath('music-alone-pause-icon')}" alt="Pause" style="display:none" />
+        <img class="mc-icon mc-pause-alt" src="${iconPath('music-alone-pause-alt-icon')}" alt="Pause" style="display:none" />
+      </button>
+      <button class="mc-btn" id="mc-next" aria-label="Skip forward 10s">
+        <img class="mc-icon mc-default" src="${iconPath('music-alone-next-icon')}" alt="Next" />
+        <img class="mc-icon mc-alt" src="${iconPath('music-alone-next-alt-icon')}" alt="Next" style="display:none" />
+      </button>
+      <button class="mc-btn" id="mc-half" aria-label="0.5x speed">
+        <img class="mc-icon mc-default" src="${iconPath('music-alone-fast-backwards-icon')}" alt="0.5x" />
+        <img class="mc-icon mc-alt" src="${iconPath('music-alone-fast-backwards-alt-icon')}" alt="0.5x" style="display:none" />
+      </button>
+      <button class="mc-btn" id="mc-double" aria-label="2x speed">
+        <img class="mc-icon mc-default" src="${iconPath('music-alone-fast-forward-icon')}" alt="2x" />
+        <img class="mc-icon mc-alt" src="${iconPath('music-alone-fast-forward-alt-icon')}" alt="2x" style="display:none" />
+      </button>
+    </div>
+    <div class="music-volume-row">
+      <span class="mc-vol-label">Vol</span>
+      <input class="mc-slider" id="mc-volume" type="range" min="0" max="100" value="80" step="1" />
+      <span class="mc-slider-val" id="mc-vol-val">80%</span>
+    </div>
+  `;
+  document.body.appendChild(popup);
+
+  const mcPlay = popup.querySelector('#mc-play') as HTMLButtonElement;
+  const mcPrev = popup.querySelector('#mc-prev') as HTMLButtonElement;
+  const mcNext = popup.querySelector('#mc-next') as HTMLButtonElement;
+  const mcHalf = popup.querySelector('#mc-half') as HTMLButtonElement;
+  const mcDouble = popup.querySelector('#mc-double') as HTMLButtonElement;
+  const mcVolume = popup.querySelector('#mc-volume') as HTMLInputElement;
+  const mcVolVal = popup.querySelector('#mc-vol-val') as HTMLElement;
+
+  function positionPopup() {
+    const rect = toggle.getBoundingClientRect();
+    popup.style.top = `${rect.bottom + window.scrollY + 10}px`;
+    popup.style.right = `${window.innerWidth - rect.right}px`;
+  }
+
+  let popupOpen = false;
+
+  toggle.addEventListener('click', () => {
+    popupOpen = !popupOpen;
+    if (popupOpen) {
+      positionPopup();
+      popup.style.display = 'flex';
+    } else {
+      popup.style.display = 'none';
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (popupOpen && !popup.contains(e.target as Node) && !toggle.contains(e.target as Node)) {
+      popupOpen = false;
+      popup.style.display = 'none';
+    }
+  });
+
+  window.addEventListener('resize', () => { if (popupOpen) positionPopup(); });
+  window.addEventListener('scroll', () => { if (popupOpen) positionPopup(); });
+
+  // header icon tracks the current player state
+  let currentIcon = 'music-icon';
+  let skipTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  function setHeaderIcon(name: string) {
+    headerIcon.src = iconPath(name);
+    headerIconAlt.src = iconPath(name.replace('-icon', '-alt-icon'));
+  }
+
+  function setIcon(name: string) {
+    currentIcon = name;
+    if (!toggle.matches(':hover')) setHeaderIcon(name);
+  }
+
+  toggle.addEventListener('mouseenter', () => {
+    headerIconAlt.style.display = '';
+    headerIcon.style.display = 'none';
+  });
+  toggle.addEventListener('mouseleave', () => {
+    headerIcon.style.display = '';
+    headerIconAlt.style.display = 'none';
+  });
+
+  function hookHover(btn: HTMLButtonElement) {
+    const d = btn.querySelector('.mc-default') as HTMLImageElement;
+    const a = btn.querySelector('.mc-alt') as HTMLImageElement;
+    btn.addEventListener('mouseenter', () => { d.style.display = 'none'; a.style.display = ''; });
+    btn.addEventListener('mouseleave', () => { d.style.display = ''; a.style.display = 'none'; });
+  }
+
+  let isPlaying = false;
+
+  function updatePlayIcon(hovered = false) {
+    const d = mcPlay.querySelector('.mc-default') as HTMLImageElement;
+    const a = mcPlay.querySelector('.mc-alt') as HTMLImageElement;
+    const p = mcPlay.querySelector('.mc-pause') as HTMLImageElement;
+    const pa = mcPlay.querySelector('.mc-pause-alt') as HTMLImageElement;
+    [d, a, p, pa].forEach(el => el.style.display = 'none');
+    if (isPlaying) {
+      (hovered ? pa : p).style.display = '';
+    } else {
+      (hovered ? a : d).style.display = '';
+    }
+  }
+
+  mcPlay.addEventListener('mouseenter', () => updatePlayIcon(true));
+  mcPlay.addEventListener('mouseleave', () => updatePlayIcon(false));
+  mcPlay.addEventListener('click', () => {
+    if (audio.paused) {
+      audio.play().catch(console.error);
+      isPlaying = true;
+      setIcon('music-play-icon');
+    } else {
+      audio.pause();
+      isPlaying = false;
+      setIcon('music-pause-icon');
+    }
+    updatePlayIcon(false);
+  });
+
+  // flash the skip icon briefly then go back to whatever was showing
+  function flashIcon(name: string) {
+    if (skipTimeout) clearTimeout(skipTimeout);
+    setHeaderIcon(name);
+    skipTimeout = setTimeout(() => {
+      setHeaderIcon(currentIcon);
+      skipTimeout = null;
+    }, 1000);
+  }
+
+  hookHover(mcPrev);
+  hookHover(mcNext);
+  mcPrev.addEventListener('click', () => {
+    audio.currentTime = Math.max(0, audio.currentTime - 10);
+    flashIcon('music-previous-icon');
+  });
+  mcNext.addEventListener('click', () => {
+    audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 10);
+    flashIcon('music-next-icon');
+  });
+
+  let activeSpeed = 1;
+
+  function updateSpeedIcon(btn: HTMLButtonElement, active: boolean, hovered: boolean) {
+    const d = btn.querySelector('.mc-default') as HTMLImageElement;
+    const a = btn.querySelector('.mc-alt') as HTMLImageElement;
+    const showAlt = active || hovered;
+    d.style.display = showAlt ? 'none' : '';
+    a.style.display = showAlt ? '' : 'none';
+  }
+
+  function setSpeed(speed: number) {
+    activeSpeed = speed;
+    audio.playbackRate = speed;
+    updateSpeedIcon(mcHalf, speed === 0.5, false);
+    updateSpeedIcon(mcDouble, speed === 2, false);
+
+    if (speed === 0.5) setIcon('music-fast-backwards-icon');
+    else if (speed === 2) setIcon('music-fast-forward-icon');
+    else setIcon(isPlaying ? 'music-play-icon' : 'music-pause-icon');
+  }
+
+  mcHalf.addEventListener('mouseenter', () => updateSpeedIcon(mcHalf, activeSpeed === 0.5, true));
+  mcHalf.addEventListener('mouseleave', () => updateSpeedIcon(mcHalf, activeSpeed === 0.5, false));
+  mcDouble.addEventListener('mouseenter', () => updateSpeedIcon(mcDouble, activeSpeed === 2, true));
+  mcDouble.addEventListener('mouseleave', () => updateSpeedIcon(mcDouble, activeSpeed === 2, false));
+
+  mcHalf.addEventListener('click', () => setSpeed(activeSpeed === 0.5 ? 1 : 0.5));
+  mcDouble.addEventListener('click', () => setSpeed(activeSpeed === 2 ? 1 : 2));
+
+  audio.volume = 0.8;
+  mcVolume.addEventListener('input', () => {
+    const v = Number(mcVolume.value);
+    audio.volume = v / 100;
+    mcVolVal.textContent = `${v}%`;
+  });
+</script>
+
+<style>
+  header {
+    width: 100%;
+    max-height: 90px;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    background: rgba(0, 3, 77, 0.25);
+    border-radius: 16px;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--accent-dark);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: visible;
+  }
+
+  nav {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .nav-left {
+    display: flex;
+    align-items: center;
+  }
+
+  .nav-center {
+    display: flex;
+    flex: 1;
+    justify-content: center;
+    gap: 1rem;
+    min-width: 0;
+  }
+
+  .nav-right {
+    display: flex;
+    align-items: center;
+    position: relative;
+  }
+
+  .audio-button {
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    outline: none;
+    overflow: visible;
+    position: relative;
+    transition: transform 0.2s ease;
+  }
+
+  .audio-button:hover {
+    transform: scale(1.15);
+  }
+
+  .music-btn-icon {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transform: none !important;
+  }
+
+  nav a {
+    position: relative;
+    font-size: 1.5rem;
+    padding: 1em 0.5em;
+    color: var(--black);
+    border-bottom: 4px solid transparent;
+    text-decoration: none;
+  }
+
+  nav a.active {
+    border-bottom-color: transparent;
+  }
+
+  nav a.active::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 50px;
+    background: linear-gradient(to top, rgba(0, 26, 255, 0.5), rgba(255, 255, 255, 0));
+  }
+
+  nav h3 a {
+    font-size: 2rem;
+    text-decoration: none;
+    color: inherit;
+  }
+</style>
+
+<style is:global>
+  @keyframes mp-fade-in {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .music-popup {
+    position: fixed;
+    min-width: 240px;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    background: rgba(0, 3, 77, 0.25);
+    border-radius: 16px;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--accent-dark);
+    z-index: 9999;
+    animation: mp-fade-in 0.2s ease forwards;
+  }
+
+  .music-song-name {
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 600;
+    color: white;
+    -webkit-text-stroke: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .music-artist {
+    text-align: center;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.6);
+    -webkit-text-stroke: 0;
+    margin-top: -0.5rem;
+  }
+
+  .music-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .mc-btn {
+    width: 40px;
+    height: 40px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+  }
+
+  .mc-btn:hover {
+    transform: scale(1.2);
+  }
+
+  .mc-icon {
+    position: absolute;
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    transform: none !important;
+  }
+
+  .mc-icon:hover {
+    transform: none !important;
+  }
+
+  .music-volume-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .mc-vol-label {
+    font-size: 0.8rem;
+    color: white;
+    -webkit-text-stroke: 0;
+    flex-shrink: 0;
+  }
+
+  .mc-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.3);
+    outline: none;
+    cursor: pointer;
+  }
+
+  .mc-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: white;
+    cursor: pointer;
+  }
+
+  .mc-slider::-moz-range-thumb {
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: white;
+    border: none;
+    cursor: pointer;
+  }
+
+  .mc-slider-val {
+    font-size: 0.8rem;
+    color: white;
+    -webkit-text-stroke: 0;
+    min-width: 2.5rem;
+    text-align: right;
+  }
+</style>

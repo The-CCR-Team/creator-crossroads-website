@@ -1,0 +1,91 @@
+---
+import BaseHead from "../components/BaseHead.astro";
+import Footer from "../components/Footer.astro";
+import Header from "../components/Header.astro";
+import { SITE_DESCRIPTION, SITE_TITLE } from "../consts";
+import Stars from "../components/StarDivider.astro";
+import Particles from "../components/Particles.astro";
+import { Image } from "astro:assets";
+import Logo from "../assets/logo.png";
+import arturo from "../assets/mascots/arturo.png";
+import signage from "../assets/mascots/signage.png";
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+	</head>
+	<body>
+		<Header />
+		<Particles />
+<main>
+  <h1 style="text-align: center;">Welcome to the...</h1>
+
+<div class="big-image">
+    <Image src={Logo} alt="Logo" width="375" loading="eager" />
+</div>
+  
+  <Stars />
+
+<article class="post-card">
+<div class="post-card-content">
+      <h3>What do we do?</h3>
+    <p style="text-align: left;">
+        We are a community for artists of any kind! Being digital, traditional, animation,
+        3D, writing, music, OCs, OC Worlds, coders, musicians, anything!
+		<br>Our team helps with services like video editing, moderation, advertising commissions, and portfolio hosting.
+        <br>We are a toxicity and AI-free zone!
+      </p>
+    </div>
+
+    <div class="post-card-media">
+      	<Image src={arturo} alt="Arturo" width="250" loading="lazy" />
+    </div>
+</article>
+
+    <Stars />
+
+<article class="post-card">
+
+	<div class="post-card-media">
+      	<Image src={signage} alt="Signage" width="400" loading="lazy" />
+    </div>
+
+<div class="post-card-content">
+    <h3>Recent Highlight</h3>
+    <p style="text-align: left;">
+        Website full release!
+        <br>After staying with our old Carrd website for a few months, we've decided to fully code a new website from the ground up!
+		<br>This one will feature a lot more pretty and interesting things!
+        <br>Including a way better blog website directly built into the main one!
+		<br><a href="https://youtu.be/8RFbx4lK-Qs">Read about everything in the blog!</a>
+      </p>
+    </div>
+</article>
+
+	<Stars />
+
+<article class="post-card">
+
+<div class="post-card-content">
+    <h3>Join our Community!</h3>
+    <p style="text-align: left;">
+        We host game nights every weekend, art events once in a while, and just have a lot of fun chatting with each other!
+        <br>Or follow us on <a href="https://bsky.app/profile/creatorcrossroads.team">Bluesky</a> and <a href="https://x.com/TheCCRteam">Twitter</a>! Where we post updates and repost beautiful art!
+		<br>This one will feature a lot more pretty and interesting things!
+        <br>Or you can also subscribe to our <a href="https://www.youtube.com/@CreatorCrossroads">YouTube</a> where will post music, and our game nights, and animations, and more!
+    </p>
+    </div>
+	  
+	<div class="post-card-media">
+      	<iframe src="https://discord.com/widget?id=1437480708011593872&theme=dark" width="350" height="500" allowtransparency="true" frameborder="0" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"></iframe>
+    </div>
+</article>
+
+	<Stars />
+
+</main>
+<Footer />
+	</body>
+</html>

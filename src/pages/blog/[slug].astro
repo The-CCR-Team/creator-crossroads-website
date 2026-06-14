@@ -8,11 +8,16 @@ import Footer from "../../components/Footer.astro";
 import Stars from "../../components/StarDivider.astro";
 import Particles from "../../components/Particles.astro";
 
-// Icon Files
 import blueskyIcon from "../../assets/icons/bluesky-icon.png";
-import xIcon from "../../assets/icons/twitter-icon.png"; 
+import blueskyAltIcon from "../../assets/icons/bluesky-alt-icon.png";
+import twitterIcon from "../../assets/icons/twitter-icon.png";
+import twitterAltIcon from "../../assets/icons/twitter-alt-icon.png";
 import emailIcon from "../../assets/icons/email-icon.png";
+import emailAltIcon from "../../assets/icons/email-alt-icon.png";
 import linkIcon from "../../assets/icons/link-icon.png";
+import linkAltIcon from "../../assets/icons/link-alt-icon.png";
+import calendarIcon from "../../assets/icons/calendar-icon.png";
+import calendarAltIcon from "../../assets/icons/calendar-alt-icon.png";
 
 export const prerender = false;
 
@@ -58,6 +63,7 @@ if (!post) {
 
 const pageTitle = post.title;
 const pageDescription = post.title || "Blog Post";
+const pageUrl = String(Astro.url);
 ---
 
 <!doctype html>
@@ -71,19 +77,14 @@ const pageDescription = post.title || "Blog Post";
 
     <main class="page-container">
       <div class="navigation-wrapper">
-        <a href="/blog" class="back-link">
-          Back to Blog Posts
-        </a>
+        <a href="/blog" class="back-link">Back to Blog Posts</a>
       </div>
       
       <article class="blog-card">
-        
-        {/* Title & Meta Info */}
         <div class="blog-header-content">
           <h1 class="blog-title">{post.title}</h1>
 
           <div class="blog-meta-row">
-            {/* Authors Group */}
             {post.authors.length > 0 && (
               <div class="meta-item authors-badge">
                 {post.authors.map((author: any) => (
@@ -91,7 +92,7 @@ const pageDescription = post.title || "Blog Post";
                     {author.avatar ? (
                       <img src={author.avatar} alt={author.name} class="author-avatar" />
                     ) : (
-                      "👤"
+                      <span class="author-fallback">👤</span>
                     )}
                     {author.name}
                   </span>
@@ -100,33 +101,33 @@ const pageDescription = post.title || "Blog Post";
             )}
 
             <div class="meta-item date-badge">
-              <span class="icon">📅</span>
-              <span class="text">{post.publication_date || "N/A"}</span>
+              <span class="calendar-icon-wrap">
+                <img class="cal-icon cal-default" src={calendarIcon.src} alt="Date" />
+                <img class="cal-icon cal-alt" src={calendarAltIcon.src} alt="Date" />
+              </span>
+              <span class="date-text">{post.publication_date || "N/A"}</span>
             </div>
           </div>
-          
-{/* Share Row */}
-<div class="share-row">
-  {/* Bluesky Link */}
-  <a href={`https://bsky.app/intent/compose?text=${encodeURIComponent(post.title + ' ' + String(Astro.url))}`} target="_blank" rel="noopener noreferrer" class="share-link">
-    <img src={blueskyIcon.src} alt="Bluesky" class="share-icon-img" />
-  </a>
 
-  {/* X Link */}
-  <a href={`https://x.com/intent/tweet?url=${encodeURIComponent(String(Astro.url))}`} target="_blank" rel="noopener noreferrer" class="share-link">
-    <img src={xIcon.src} alt="X" class="share-icon-img" />
-  </a>
-
-  {/* Email Link */}
-  <a href={`mailto:?subject=${encodeURIComponent(post.title)}&body=${encodeURIComponent(String(Astro.url))}`} class="share-link">
-    <img src={emailIcon.src} alt="Email" class="share-icon-img" />
-  </a>
-
-  {/* Copy Link Button */}
-  <button id="copy-link-btn" class="share-link-btn" data-url={String(Astro.url)}>
-    <img src={linkIcon.src} alt="Copy Link" class="share-icon-img" />
-  </button>
-</div>
+          <div class="share-row">
+            <a href={`https://bsky.app/intent/compose?text=${encodeURIComponent(post.title + ' ' + pageUrl)}`} target="_blank" rel="noopener noreferrer" class="share-btn">
+              <img class="share-icon share-default" src={blueskyIcon.src} alt="Share on Bluesky" />
+              <img class="share-icon share-alt" src={blueskyAltIcon.src} alt="Share on Bluesky" />
+            </a>
+            <a href={`https://x.com/intent/tweet?url=${encodeURIComponent(pageUrl)}`} target="_blank" rel="noopener noreferrer" class="share-btn">
+              <img class="share-icon share-default" src={twitterIcon.src} alt="Share on Twitter" />
+              <img class="share-icon share-alt" src={twitterAltIcon.src} alt="Share on Twitter" />
+            </a>
+            <a href={`mailto:?subject=${encodeURIComponent(post.title)}&body=${encodeURIComponent(pageUrl)}`} class="share-btn">
+              <img class="share-icon share-default" src={emailIcon.src} alt="Share via Email" />
+              <img class="share-icon share-alt" src={emailAltIcon.src} alt="Share via Email" />
+            </a>
+            <button id="copy-link-btn" class="share-btn" data-url={pageUrl}>
+              <img class="share-icon share-default" src={linkIcon.src} alt="Copy Link" />
+              <img class="share-icon share-alt" src={linkAltIcon.src} alt="Copy Link" />
+            </button>
+          </div>
+        </div>
 
         {post.cover && (
           <div class="blog-cover-wrapper">
@@ -139,7 +140,31 @@ const pageDescription = post.title || "Blog Post";
         </div>
 
         <div class="blog-body-markdown" set:html={post.content} />
-        
+
+        <div class="share-bottom">
+          <div class="divider-space">
+            <Stars />
+          </div>
+          <p class="share-label">Share our article:</p>
+          <div class="share-row">
+            <a href={`https://bsky.app/intent/compose?text=${encodeURIComponent(post.title + ' ' + pageUrl)}`} target="_blank" rel="noopener noreferrer" class="share-btn">
+              <img class="share-icon share-default" src={blueskyIcon.src} alt="Share on Bluesky" />
+              <img class="share-icon share-alt" src={blueskyAltIcon.src} alt="Share on Bluesky" />
+            </a>
+            <a href={`https://x.com/intent/tweet?url=${encodeURIComponent(pageUrl)}`} target="_blank" rel="noopener noreferrer" class="share-btn">
+              <img class="share-icon share-default" src={twitterIcon.src} alt="Share on Twitter" />
+              <img class="share-icon share-alt" src={twitterAltIcon.src} alt="Share on Twitter" />
+            </a>
+            <a href={`mailto:?subject=${encodeURIComponent(post.title)}&body=${encodeURIComponent(pageUrl)}`} class="share-btn">
+              <img class="share-icon share-default" src={emailIcon.src} alt="Share via Email" />
+              <img class="share-icon share-alt" src={emailAltIcon.src} alt="Share via Email" />
+            </a>
+            <button id="copy-link-btn-bottom" class="share-btn" data-url={pageUrl}>
+              <img class="share-icon share-default" src={linkIcon.src} alt="Copy Link" />
+              <img class="share-icon share-alt" src={linkAltIcon.src} alt="Copy Link" />
+            </button>
+          </div>
+        </div>
       </article>
     </main>
 
@@ -152,58 +177,58 @@ const pageDescription = post.title || "Blog Post";
     max-width: 1100px;
     margin: 0 auto;
     padding: 4rem 1.5rem 8rem 1.5rem;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: 'Baloo', sans-serif;
   }
 
   .blog-card {
-    background: rgba(10, 15, 30, 0.7);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(0, 255, 204, 0.15);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    background: rgba(0, 3, 77, 0.25);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--accent-dark);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
     border-radius: 16px;
     overflow: hidden;
     padding: 3.5rem 4rem;
+    font-family: 'Baloo', sans-serif;
   }
 
   @media (max-width: 768px) {
-    .blog-card { 
+    .blog-card {
       padding: 2rem 1.75rem;
     }
   }
 
   .blog-cover-wrapper {
-    position: relative;
     width: 100%;
     margin-top: 1rem;
     margin-bottom: 3rem;
     border-radius: 8px;
-    border: 1px solid rgba(0, 255, 204, 0.15);
+    overflow: hidden;
   }
 
   .blog-cover-img {
     display: block;
     width: 100%;
     height: auto;
-    max-height: none; 
     object-fit: contain;
   }
 
   .navigation-wrapper {
     margin-bottom: 1.75rem;
   }
-  
+
   .back-link {
     color: #ffffff !important;
     opacity: 0.85;
     text-decoration: none;
-    font-size: 0.9rem;
+    font-size: 1.2rem;
     font-weight: 800;
     letter-spacing: 0.05em;
     display: inline-flex;
     align-items: center;
     gap: 0.6rem;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.25s ease;
+    font-family: 'Baloo', sans-serif;
   }
 
   .back-link::before {
@@ -212,15 +237,14 @@ const pageDescription = post.title || "Blog Post";
     width: 7px;
     height: 7px;
     border-left: 2.5px solid currentColor;
-    border-bottom: 2.5px solid currentColor; 
-    transform: rotate(45deg); 
-    margin-top: 1px; 
+    border-bottom: 2.5px solid currentColor;
+    transform: rotate(45deg);
+    margin-top: 1px;
     transition: transform 0.25s ease;
   }
-  
+
   .back-link:hover {
     opacity: 1;
-    text-shadow: 0 0 8px rgba(0, 255, 204, 0.6);
     transform: translateX(-4px);
   }
 
@@ -233,9 +257,10 @@ const pageDescription = post.title || "Blog Post";
   }
 
   .blog-title {
-    font-size: 2.5rem;
+    font-size: 3.2rem;
     color: #ffffff;
     margin-bottom: 1rem;
+    font-family: 'Baloo', sans-serif;
   }
 
   .blog-meta-row {
@@ -245,81 +270,143 @@ const pageDescription = post.title || "Blog Post";
     align-items: center;
     color: #ffffff;
     opacity: 0.8;
+    font-family: 'Baloo', sans-serif;
+  }
+
+  /* author pill */
+  .author-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
   }
 
   .author-avatar {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
-    vertical-align: middle;
-    margin-right: 0.25rem;
+    object-fit: cover;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transform: none;
   }
 
+  .author-avatar:hover {
+    transform: scale(1.2) !important;
+    box-shadow: 0 0 0 2px white;
+  }
+
+  /* calendar icon */
+  .date-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .calendar-icon-wrap {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    overflow: visible;
+    transition: transform 0.2s ease;
+    cursor: default;
+  }
+
+  .calendar-icon-wrap:hover {
+    transform: scale(1.2);
+  }
+
+  .cal-icon {
+    position: absolute;
+    border-radius: 0px;
+    inset: 0;
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    transition: opacity 0.2s ease;
+    transform: none !important;
+  }
+
+  .cal-alt { opacity: 0; }
+  .calendar-icon-wrap:hover .cal-default { opacity: 0; }
+  .calendar-icon-wrap:hover .cal-alt { opacity: 1; }
+
+  .date-text {
+    font-family: 'Baloo', sans-serif;
+  }
+
+  /* share buttons */
   .share-row {
     display: flex;
     gap: 0.75rem;
+    align-items: center;
     margin-top: 1.25rem;
-    font-size: 1.1rem;
-    opacity: 0.6;
   }
-  
-  .share-icon {
+
+  .share-btn {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    background: none;
+    border: none;
+    padding: 0;
     cursor: pointer;
-    transition: opacity 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
   }
-  
-  .share-icon:hover {
-    opacity: 1;
+
+  .share-btn:hover {
+    transform: scale(1.2);
+  }
+
+  .share-icon {
+    position: absolute;
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    transition: opacity 0.2s ease;
+    transform: none !important;
+  }
+
+  .share-alt { opacity: 0; }
+  .share-btn:hover .share-default { opacity: 0; }
+  .share-btn:hover .share-alt { opacity: 1; }
+
+  /* bottom share section */
+  .share-bottom {
+    margin-top: 3rem;
+  }
+
+  .share-label {
+    font-family: 'Baloo', sans-serif;
+    font-size: 1.8rem;
+    color: white;
+    margin-bottom: 0.5rem;
   }
 
   .divider-space {
     margin: 2rem 0;
   }
 
-  .share-row {
-  display: flex;
-  gap: 0.75rem;
-  margin-top: 1.25rem;
-  align-items: center;
-}
-
-.share-link, .share-link-btn {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  display: flex;
-  opacity: 0.6;
-  transition: opacity 0.2s;
-}
-
-.share-link:hover, .share-link-btn:hover {
-  opacity: 1;
-}
-
-.share-icon-img {
-  width: 20px;
-  height: 20px;
-  object-fit: contain;
-}
+  .blog-body-markdown {
+    font-family: 'Baloo', sans-serif;
+  }
 </style>
 
 <script>
-  const copyBtn = document.getElementById('copy-link-btn');
-  
-  if (copyBtn) {
-    copyBtn.addEventListener('click', () => {
-      const url = copyBtn.getAttribute('data-url');
-      
+  function hookCopyBtn(id: string) {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const url = btn.getAttribute('data-url');
       if (url) {
-        navigator.clipboard.writeText(url)
-          .then(() => {
-            console.log('Link copied successfully!');
-          })
-          .catch((err) => {
-            console.error('Failed to copy link: ', err);
-          });
+        navigator.clipboard.writeText(url).catch(console.error);
       }
     });
   }
+
+  hookCopyBtn('copy-link-btn');
+  hookCopyBtn('copy-link-btn-bottom');
 </script>

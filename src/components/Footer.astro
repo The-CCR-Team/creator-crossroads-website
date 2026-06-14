@@ -9,10 +9,17 @@ import TwitterIcon from "../assets/icons/twitter-icon.png";
 import TwitterIconAlt from "../assets/icons/twitter-alt-icon.png";
 import YoutubeIcon from "../assets/icons/youtube-icon.png";
 import YoutubeIconAlt from "../assets/icons/youtube-alt-icon.png";
+import EmailIcon from "../assets/icons/email-icon.png";
+import EmailIconAlt from "../assets/icons/email-alt-icon.png";
 ---
 <footer>
   {today.getFullYear()} Creator CrossRoads
   <div class="social-links">
+    <a class="social-link" href="mailto:contact@creatorcrossroads.team" target="_blank" rel="noopener noreferrer">
+      <span class="sr-only">Join our Discord</span>
+      <Image src={EmailIcon} alt="" class="icon icon-closed" width={64} height={64} />
+      <Image src={EmailIconAlt} alt="" class="icon icon-open" width={64} height={64} />
+    </a>
     <a class="social-link" href="https://discord.gg/zzRy2hjppe" target="_blank" rel="noopener noreferrer">
       <span class="sr-only">Join our Discord</span>
       <Image src={DiscordIcon} alt="" class="icon icon-closed" width={64} height={64} />

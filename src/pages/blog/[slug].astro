@@ -1,0 +1,325 @@
+---
+import { Client } from "@notionhq/client";
+import { wrapLists, getNotionFileUrl } from "../../notion"; 
+
+import BaseHead from "../../components/BaseHead.astro";
+import Header from "../../components/Header.astro";
+import Footer from "../../components/Footer.astro";
+import Stars from "../../components/StarDivider.astro";
+import Particles from "../../components/Particles.astro";
+
+// Icon Files
+import blueskyIcon from "../../assets/icons/bluesky-icon.png";
+import xIcon from "../../assets/icons/twitter-icon.png"; 
+import emailIcon from "../../assets/icons/email-icon.png";
+import linkIcon from "../../assets/icons/link-icon.png";
+
+export const prerender = false;
+
+const notionKey = import.meta.env.NOTION_KEY;
+const databaseId = import.meta.env.DB_ID || "";
+const notion = new Client({ auth: notionKey });
+
+const { slug } = Astro.params;
+const normalizedSlug = (slug || "").trim().toLowerCase();
+
+const response = await notion.dataSources.query({
+  data_source_id: databaseId,
+  filter: { 
+    and: [
+      { property: "Slug", rich_text: { equals: normalizedSlug } },
+      { property: "Published", checkbox: { equals: true } }
+    ]
+  },
+});
+
+const pageData = response.results[0] as any;
+let post: any = null;
+
+if (pageData?.properties) {
+  const blocks = await notion.blocks.children.list({ block_id: pageData.id });
+  const props = pageData.properties;
+
+  post = {
+    title: props.Title?.title?.[0]?.plain_text || "Untitled Post",
+    publication_date: props.PublicationDate?.date?.start || "",
+    cover: getNotionFileUrl(props.Cover?.files?.[0]),
+    content: wrapLists(blocks.results),
+    authors: props.Authors?.people?.map((author: any) => ({
+      name: author.name || "Anonymous",
+      avatar: author.avatar_url || null,
+    })) || [],
+  };
+}
+
+if (!post) {
+  return Astro.redirect('/404');
+}
+
+const pageTitle = post.title;
+const pageDescription = post.title || "Blog Post";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <BaseHead title={pageTitle} description={pageDescription} />
+  </head>
+  <body>
+    <Particles />
+    <Header />
+
+    <main class="page-container">
+      <div class="navigation-wrapper">
+        <a href="/blog" class="back-link">
+          Back to Blog Posts
+        </a>
+      </div>
+      
+      <article class="blog-card">
+        
+        {/* Title & Meta Info */}
+        <div class="blog-header-content">
+          <h1 class="blog-title">{post.title}</h1>
+
+          <div class="blog-meta-row">
+            {/* Authors Group */}
+            {post.authors.length > 0 && (
+              <div class="meta-item authors-badge">
+                {post.authors.map((author: any) => (
+                  <span class="author-pill">
+                    {author.avatar ? (
+                      <img src={author.avatar} alt={author.name} class="author-avatar" />
+                    ) : (
+                      "👤"
+                    )}
+                    {author.name}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div class="meta-item date-badge">
+              <span class="icon">📅</span>
+              <span class="text">{post.publication_date || "N/A"}</span>
+            </div>
+          </div>
+          
+{/* Share Row */}
+<div class="share-row">
+  {/* Bluesky Link */}
+  <a href={`https://bsky.app/intent/compose?text=${encodeURIComponent(post.title + ' ' + String(Astro.url))}`} target="_blank" rel="noopener noreferrer" class="share-link">
+    <img src={blueskyIcon.src} alt="Bluesky" class="share-icon-img" />
+  </a>
+
+  {/* X Link */}
+  <a href={`https://x.com/intent/tweet?url=${encodeURIComponent(String(Astro.url))}`} target="_blank" rel="noopener noreferrer" class="share-link">
+    <img src={xIcon.src} alt="X" class="share-icon-img" />
+  </a>
+
+  {/* Email Link */}
+  <a href={`mailto:?subject=${encodeURIComponent(post.title)}&body=${encodeURIComponent(String(Astro.url))}`} class="share-link">
+    <img src={emailIcon.src} alt="Email" class="share-icon-img" />
+  </a>
+
+  {/* Copy Link Button */}
+  <button id="copy-link-btn" class="share-link-btn" data-url={String(Astro.url)}>
+    <img src={linkIcon.src} alt="Copy Link" class="share-icon-img" />
+  </button>
+</div>
+
+        {post.cover && (
+          <div class="blog-cover-wrapper">
+            <img src={post.cover} alt={post.title} class="blog-cover-img" />
+          </div>
+        )}
+
+        <div class="divider-space">
+          <Stars />
+        </div>
+
+        <div class="blog-body-markdown" set:html={post.content} />
+        
+      </article>
+    </main>
+
+    <Footer />
+  </body>
+</html>
+
+<style>
+  .page-container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 4rem 1.5rem 8rem 1.5rem;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  .blog-card {
+    background: rgba(10, 15, 30, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(0, 255, 204, 0.15);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    overflow: hidden;
+    padding: 3.5rem 4rem;
+  }
+
+  @media (max-width: 768px) {
+    .blog-card { 
+      padding: 2rem 1.75rem;
+    }
+  }
+
+  .blog-cover-wrapper {
+    position: relative;
+    width: 100%;
+    margin-top: 1rem;
+    margin-bottom: 3rem;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 255, 204, 0.15);
+  }
+
+  .blog-cover-img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: none; 
+    object-fit: contain;
+  }
+
+  .navigation-wrapper {
+    margin-bottom: 1.75rem;
+  }
+  
+  .back-link {
+    color: #ffffff !important;
+    opacity: 0.85;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .back-link::before {
+    content: "";
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-left: 2.5px solid currentColor;
+    border-bottom: 2.5px solid currentColor; 
+    transform: rotate(45deg); 
+    margin-top: 1px; 
+    transition: transform 0.25s ease;
+  }
+  
+  .back-link:hover {
+    opacity: 1;
+    text-shadow: 0 0 8px rgba(0, 255, 204, 0.6);
+    transform: translateX(-4px);
+  }
+
+  .back-link:hover::before {
+    transform: translateX(-2px) rotate(45deg);
+  }
+
+  .blog-header-content {
+    margin-bottom: 2rem;
+  }
+
+  .blog-title {
+    font-size: 2.5rem;
+    color: #ffffff;
+    margin-bottom: 1rem;
+  }
+
+  .blog-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    align-items: center;
+    color: #ffffff;
+    opacity: 0.8;
+  }
+
+  .author-avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    vertical-align: middle;
+    margin-right: 0.25rem;
+  }
+
+  .share-row {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+    font-size: 1.1rem;
+    opacity: 0.6;
+  }
+  
+  .share-icon {
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  
+  .share-icon:hover {
+    opacity: 1;
+  }
+
+  .divider-space {
+    margin: 2rem 0;
+  }
+
+  .share-row {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  align-items: center;
+}
+
+.share-link, .share-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.share-link:hover, .share-link-btn:hover {
+  opacity: 1;
+}
+
+.share-icon-img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+</style>
+
+<script>
+  const copyBtn = document.getElementById('copy-link-btn');
+  
+  if (copyBtn) {
+    copyBtn.addEventListener('click', () => {
+      const url = copyBtn.getAttribute('data-url');
+      
+      if (url) {
+        navigator.clipboard.writeText(url)
+          .then(() => {
+            console.log('Link copied successfully!');
+          })
+          .catch((err) => {
+            console.error('Failed to copy link: ', err);
+          });
+      }
+    });
+  }
+</script>

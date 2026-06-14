@@ -1,0 +1,508 @@
+---
+import BaseHead from "../../components/BaseHead.astro";
+import Footer from "../../components/Footer.astro";
+import Header from "../../components/Header.astro";
+import { SITE_DESCRIPTION, SITE_TITLE } from "../../consts";
+import Stars from "../../components/StarDivider.astro";
+import Particles from "../../components/Particles.astro";
+import { Client } from "@notionhq/client";
+
+const notion = new Client({ auth: import.meta.env.NOTION_KEY });
+let posts: any[] = [];
+
+try {
+  const response = await notion.dataSources.query({
+    data_source_id: import.meta.env.DB_ID || "",
+    filter: { property: "Published", checkbox: { equals: true } },
+  });
+
+  posts = response.results.map((p: any) => ({
+    title: p.properties.Title?.title[0]?.plain_text || "",
+    slug: p.properties.Slug?.rich_text[0]?.plain_text || "",
+    description: p.properties.Description?.rich_text[0]?.plain_text || "",
+    authors: p.properties.Authors?.people?.map((a: any) => ({
+      name: a.name,
+      avatar: a.avatar_url || null,
+    })) || [],
+    tags: p.properties.Tags?.multi_select?.map((t: any) => t.name) || [],
+    publication_date: p.properties.PublicationDate?.date?.start || "",
+    cover: p.properties.Cover?.files?.[0]?.file?.url || p.properties.Cover?.files?.[0]?.external?.url || null,
+  }));
+} catch (err) {
+  console.error("Error fetching posts:", err);
+}
+
+const allTags = ["All", ...Array.from(new Set(posts.flatMap((post: any) => post.tags)))];
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <BaseHead title={`${SITE_TITLE} - Blog`} description={SITE_DESCRIPTION} />
+  </head>
+  <body>
+    <Header />
+    <Particles />
+    
+    <main class="index-container">
+      <h1 class="page-title">Our Blog</h1>
+      <Stars />
+
+      <div class="tag-bar">
+        {allTags.map(tag => (
+          <button class="tag-button" data-tag={tag}>{tag}</button>
+        ))}
+      </div>
+
+      <div class="post-grid">
+        {posts.length === 0 && (
+          <h3 class="no-posts-message">No posts found. Coming soon!</h3>
+        )}
+
+        {posts.map((post: any) => (
+          <article class="post-card" data-tags={post.tags.join(",")}>
+            <div class="post-card-banner">
+              {post.cover ? (
+                <img src={post.cover} alt={post.title} class="banner-img" />
+              ) : (
+                <div class="banner-placeholder"></div>
+              )}
+              <div class="cover-overlay"></div>
+            </div>
+
+            <div class="post-card-content">
+              <div class="post-main-details">
+                <div class="title-wrapper">
+                  <a href={`/blog/${post.slug}`} class="title-anchor">
+                    <h2 class="post-title-link">{post.title || "Untitled Post"}</h2>
+                  </a>
+                </div>
+                
+                <p class="post-excerpt">{post.description || "No description provided for this update."}</p>
+              </div>
+
+              <div class="post-footer-group">
+                <div class="post-meta-row">
+                  {/* Left Side Metadata */}
+                  <div class="author-zone">
+                    {post.authors.length > 0 ? (
+                      post.authors.map((author: any) => (
+                        <span class="author-pill">
+                          {author.avatar ? (
+                            <img src={author.avatar} alt={author.name} class="author-avatar" />
+                          ) : (
+                            <span class="author-icon">👤</span>
+                          )}
+                          <span class="author-name-text">{author.name}</span>
+                        </span>
+                      ))
+                    ) : (
+                      <span class="author-pill">👤 <span class="author-name-text">System</span></span>
+                    )}
+                    
+                    <div class="post-date">
+                      <span class="date-icon">📅</span> 
+                      <span class="date-text">{post.publication_date || "N/A"}</span>
+                    </div>
+                  </div>
+
+                  {/* Right Side Metadata */}
+                  <div class="details-zone">
+                    <div class="post-tags">
+                      {post.tags.length > 0 ? (
+                        post.tags.map((tag: string) => (
+                          <span class="tag-pill">{tag}</span>
+                        ))
+                      ) : (
+                        <span class="tag-pill fallback">No Tag</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <a href={`/blog/${post.slug}`} class="read-more-btn">
+                  Read Post <span class="arrow-icon">→</span>
+                </a>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <div style="margin-top: 4rem;">
+        <Stars />
+      </div>
+    </main>
+    
+    <Footer />
+
+    <script>
+      const buttons = document.querySelectorAll('.tag-button');
+      const cards = document.querySelectorAll('.post-card');
+
+      document.querySelector('[data-tag="All"]')?.classList.add('active');
+
+      buttons.forEach(button => {
+        button.addEventListener('click', () => {
+          buttons.forEach(btn => btn.classList.remove('active'));
+          button.classList.add('active');
+
+          const selectedTag = button.getAttribute('data-tag') || "All";
+
+          cards.forEach(card => {
+            const cardTagsAttr = card.getAttribute('data-tags');
+            const cardTags = cardTagsAttr ? cardTagsAttr.split(',') : [];
+            
+            if (selectedTag === 'All' || cardTags.includes(selectedTag)) {
+              (card as HTMLElement).style.display = 'flex';
+            } else {
+              (card as HTMLElement).style.display = 'none';
+            }
+          });
+        });
+      });
+    </script>
+  </body>
+</html>
+
+<style>
+  /* Base Layout */
+  .index-container {
+    max-width: 1000px; 
+    margin: 0 auto;
+    padding: 4rem 1.5rem 8rem 1.5rem;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  .page-title {
+    text-align: center;
+    font-size: 3rem;
+    font-weight: 800;
+    color: #00ffcc;
+    text-shadow: 0 0 15px rgba(0, 255, 204, 0.25);
+    margin-bottom: 1rem;
+  }
+
+  .post-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-top: 3rem;
+  }
+
+  .no-posts-message {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.6);
+    padding: 4rem 0;
+  }
+
+  /* 2. Top Category Filter Tags */
+  .tag-bar {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    margin: 2.5rem 0;
+    flex-wrap: wrap;
+  }
+
+  .tag-button {
+    padding: 0.5rem 1.25rem;
+    border: 1px solid rgba(0, 255, 204, 0.2);
+    background: rgba(10, 15, 30, 0.6);
+    color: #ffffff !important; 
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 30px;
+    text-shadow: none !important;
+    -webkit-text-stroke: 0px transparent !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .tag-button:hover, .tag-button.active {
+    background: rgba(0, 255, 204, 0.1) !important;
+    color: #ffffff !important;
+    font-weight: 700;
+    box-shadow: none !important;
+    border-color: rgba(0, 255, 204, 0.5);
+    text-shadow: none !important;
+  }
+
+  /* Horizontal Layout */
+  .post-card {
+    display: flex;
+    flex-direction: row; 
+    background: rgba(13, 22, 46, 0.8);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(0, 255, 204, 0.15);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    border-radius: 16px;
+    overflow: hidden;
+    min-height: 180px;
+    transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  @media (max-width: 768px) {
+    .post-card {
+      flex-direction: column; 
+    }
+  }
+
+  .post-card:hover {
+    transform: translateY(-2px);
+    background: rgba(13, 22, 46, 0.95);
+    border-color: rgba(0, 255, 204, 0.45);
+    box-shadow: 0 20px 40px rgba(0, 255, 204, 0.05);
+  }
+
+  .post-card-banner {
+    position: relative;
+    width: 280px; 
+    min-width: 280px;
+    height: auto;
+    overflow: hidden;
+    background: #090f24;
+  }
+
+  @media (max-width: 768px) {
+    .post-card-banner {
+      width: 100%;
+      height: 180px;
+    }
+  }
+
+  .banner-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .banner-placeholder {
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at top right, rgba(0, 255, 204, 0.05), rgba(13, 22, 46, 1));
+  }
+
+  .cover-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right, transparent 60%, rgba(13, 22, 46, 0.4));
+  }
+
+  .post-card-content {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    flex-grow: 1;
+    gap: 1rem;
+    isolation: isolate !important;
+  }
+
+  .post-main-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .title-wrapper {
+    display: flex !important;
+    text-align: left;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .title-anchor {
+    text-decoration: none !important;
+    display: inline-block !important;
+    background: transparent !important;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+  }
+
+  .post-title-link {
+    font-size: 1.4rem !important;
+    font-weight: 800 !important; 
+    color: #ffffff !important; 
+    -webkit-text-fill-color: #ffffff !important;
+    text-fill-color: #ffffff !important;
+    line-height: 1.2 !important;
+    margin: 0 !important;
+    text-shadow: none !important;
+    -webkit-text-stroke: 0px transparent !important;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  }
+
+  .title-anchor:hover .post-title-link {
+    color: #ffffff !important; 
+    -webkit-text-fill-color: #ffffff !important;
+    text-fill-color: #ffffff !important;
+  }
+
+  .post-excerpt {
+    color: #cbd5e1 !important; 
+    font-size: 0.95rem;
+    line-height: 1.5;
+    text-shadow: none !important;
+    -webkit-text-stroke: 0px transparent !important;
+    text-align: left;
+    margin: 0 !important;
+    box-sizing: border-box;
+    
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2; 
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Footer Metadata Row */
+  .post-footer-group {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 1.5rem;
+  }
+
+  @media (max-width: 600px) {
+    .post-footer-group {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+  }
+
+  .post-meta-row {
+    display: flex;
+    align-items: center; 
+    justify-content: space-between;
+    flex-grow: 1;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .author-zone {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .author-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 0.35rem 0.65rem;
+    border-radius: 8px;
+  }
+
+  .author-name-text {
+    color: #e2e8f0 !important;
+    font-size: 0.85rem; 
+    font-weight: 500;
+    text-shadow: none !important;
+    -webkit-text-stroke: 0px transparent !important;
+  }
+
+  .author-avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 255, 204, 0.4);
+    object-fit: cover;
+  }
+
+  .details-zone {
+    display: flex;
+    align-items: center;
+  }
+
+  .post-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  .tag-pill {
+    background: rgba(0, 255, 204, 0.1); 
+    color: #00ffcc !important;
+    border: 1px solid rgba(0, 255, 204, 0.3);
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px; 
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase; 
+    letter-spacing: 0.02em;
+    text-shadow: none !important;
+    -webkit-text-stroke: 0px transparent !important;
+  }
+
+  .tag-pill.fallback {
+    background: rgba(255, 255, 255, 0.05);
+    color: #64748b !important;
+    border: none;
+    text-transform: none;
+  }
+
+  .post-date {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+  }
+
+  .date-text {
+    color: #64748b !important;
+    font-weight: 500;
+    text-shadow: none !important;
+    -webkit-text-stroke: 0px transparent !important;
+  }
+
+  .date-icon {
+    font-size: 0.8rem;
+    opacity: 0.7;
+  }
+
+  /* Action Button Layout */
+  .read-more-btn {
+    background: rgba(0, 255, 204, 0.05);
+    border: 1px solid rgba(0, 255, 204, 0.2);
+    color: #00ffcc !important;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    white-space: nowrap;
+    text-shadow: none !important;
+    -webkit-text-stroke: 0px transparent !important;
+    transition: all 0.2s ease;
+  }
+
+  @media (max-width: 600px) {
+    .read-more-btn {
+      width: 100%;
+    }
+  }
+
+  .arrow-icon {
+    transition: transform 0.2s ease;
+  }
+
+  .read-more-btn:hover {
+    background: rgba(0, 255, 204, 0.1) !important;
+    color: #00ffcc !important;
+    border-color: rgba(0, 255, 204, 0.6);
+    box-shadow: none !important;
+  }
+
+  .read-more-btn:hover .arrow-icon {
+    transform: translateX(2px);
+  }
+</style>

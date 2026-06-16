@@ -1,0 +1,54 @@
+---
+import BaseHead from "../../components/BaseHead.astro";
+import Footer from "../../components/Footer.astro";
+import Header from "../../components/Header.astro";
+import { SITE_DESCRIPTION, SITE_TITLE } from "../../consts";
+import Stars from "../../components/StarDivider.astro";
+import Particles from "../../components/Particles.astro";
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+	</head>
+	<body>
+		<Header />
+		<Particles />
+<main class="index-container">
+  <h1 class="page-title">Partners - Market</h1>
+  <Stars />
+    <main/>
+<body/>
+	<Footer />
+
+  <style>
+  /* Base Layout */
+  .index-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 4rem 1.5rem 8rem 1.5rem;
+    font-family: 'Baloo', sans-serif;
+  }
+
+  .page-title {
+    text-align: center;
+    font-size: 3rem;
+    font-weight: 800;
+    font-family: 'Baloo', sans-serif;
+    margin-bottom: 1rem;
+  }
+
+  .post-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-top: 3rem;
+  }
+
+  .no-posts-message {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.6);
+    padding: 4rem 0;
+  }
+  </style>
